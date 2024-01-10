@@ -1,10 +1,10 @@
 # KURULUM
 
-python -m venv venv ile virtual environtment oluşturulduktan sonra aktif edilir venv\Scripts\activate
+- "**python -m venv venv**" ile virtual environtment oluşturulduktan sonra "**venv\Scripts\activate**" kodları ile aktif edilir.
 
-geri yükleme pip install -r requirements.txt
+- venv'in içine kütüphaneleri geri yüklemek için "**pip install -r requirements.txt**" kodlarını kullanıyoruz
 
-python socket_handlers.py komutu ile python dosyası çalıştırılır daha sonra index.htm dosyası bir tarayıcıda açılır.
+- "**python socket_handlers.py**" komutu ile python dosyası çalıştırılır daha sonra index.htm dosyası bir tarayıcıda açılır.
 
 ## Görüntüler
 
