@@ -1,22 +1,57 @@
-# KURULUM
+# Canlı Döviz Kuru Takip Uygulaması
 
-- "**python -m venv venv**" ile virtual environtment oluşturulduktan sonra "**venv\Scripts\activate**" kodları ile aktif edilir.
+![GitHub](https://img.shields.io/github/license/hamer1818/socket-doviz)
 
-- venv'in içine kütüphaneleri geri yüklemek için "**pip install -r requirements.txt**" kodlarını kullanıyoruz
+Bu uygulama, canlı döviz kurlarını takip etmenizi sağlayan bir web uygulamasıdır. USD, EUR ve GBP kurlarını TL bazında ve çapraz kurları gerçek zamanlı olarak gösterir.
 
-- "**python socket_handlers.py**" komutu ile python dosyası çalıştırın ve  daha sonra "**index.htm**" dosyasını live server veya çift tıklayarak açabilirsiniz dosyası bir tarayıcıda açılır.
+## Teknolojiler
 
+- Backend:
+  - Python 3.x
+  - WebSockets (websockets)
+  - aiohttp
+  - asyncio
+- Frontend:
+  - HTML5
+  - JavaScript
+  - Tailwind CSS
 
+## Gereksinimler
 
-# INSTALLATION
+```bash
+pip install websockets aiohttp
+```
+## Kurulum
+1. Repoyu klonlayın.
+```bash
+git clone https://github.com/hamer1818/socket-doviz.git
+```
+2. Klasöre girin.
+```bash
+cd socket-doviz
+```
+3. Gerekli kütüphaneleri yükleyin.
+```bash
+pip install -r requirements.txt
+```
+4. Uygulamayı çalıştırın.
+```bash
+python main.py
+```
+5. `index.html` dosyasını tarayıcınızda açın.
 
-- "**python -m venv venv**" to create a virtual environment, then activate it with "**venv\Scripts\activate**" command.
+## Özellikler
+- Gerçek zamanlı döviz kurları
+- USD, EUR ve GBP kurları
+- Çapraz kurlar
+- Otomatik güncelleme
+- Anlık fiyat değişimleri
 
-- Use "**pip install -r requirements.txt**" to restore the libraries into the venv.
+## API
+Uygulama, [Döviz Kuru API](https://exchangeratesapi.io/) kullanarak döviz kurlarını alır. API, her saat başı güncellenir.
 
-- Run the python file with "**python socket_handlers.py**" command, and then you can open the "**index.html**" file by using live server or double-clicking it, it will open in a browser.
+## Ekran Görüntüleri
+![Ekran Görüntüsü](images/doviz.jpeg)
 
-
-## Görüntüler || IMAGES
-
-![image](https://github.com/hamer1818/socket-doviz/assets/47240233/27e1536f-6c0e-42f7-8715-f592b423972f)
+## Lisans
+Bu proje MIT lisansı ile lisanslanmıştır. Daha fazla bilgi için [LICENSE](LICENSE) dosyasına bakabilirsiniz.
