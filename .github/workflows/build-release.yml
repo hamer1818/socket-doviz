@@ -40,7 +40,7 @@ jobs:
           path: dist/DovizTakip-Windows.exe
 
   build-linux-appimage:
-    runs-on: ubuntu-20.04  # Daha eski bir Ubuntu sürümü kullanıyoruz
+    runs-on: ubuntu-22.04  # Daha eski bir Ubuntu sürümü kullanıyoruz
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
