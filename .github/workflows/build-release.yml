@@ -79,58 +79,73 @@ jobs:
             # Install ImageMagick for icon conversion
             sudo apt-get install -y imagemagick
             
-            # İkon dosyasını hem sistem dizinine hem de kök dizine kopyala
+            # Ensure doviz.png exists in AppDir root
             if [ -f "images/doviz.ico" ]; then
               # Convert ico to png (force overwrite)
-              convert images/doviz.ico -resize 256x256 AppDir/doviz.png
-              cp AppDir/doviz.png AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png
+              convert "images/doviz.ico" -background none -resize 256x256 "AppDir/doviz.png"
             else
-              # Eğer doviz.ico yoksa basit bir ikon oluştur
-              convert -size 256x256 xc:transparent -fill blue -draw "circle 128,128 128,64" AppDir/doviz.png
-              cp AppDir/doviz.png AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png
+              # Create a fallback icon if doviz.ico doesn't exist
+              convert -size 256x256 xc:transparent -fill blue -draw "circle 128,128 128,64" "AppDir/doviz.png"
             fi
             
-            # Make sure icon exists and has correct permissions
-            chmod 644 AppDir/doviz.png
+            # Also copy to app icon directory
+            cp "AppDir/doviz.png" "AppDir/usr/share/icons/hicolor/256x256/apps/"
             
-            # Desktop dosyası oluştur - Icon kısmını güncelle
-            echo "[Desktop Entry]
+            # Make sure icon exists and has correct permissions
+            chmod 644 "AppDir/doviz.png"
+            
+            # Debug icon file
+            file "AppDir/doviz.png"
+            
+            # Desktop dosyası oluştur - Icon değerini mutlak yol ile kullan
+            cat > "AppDir/doviztakip.desktop" << EOL
+            [Desktop Entry]
             Name=Döviz Takip
             Exec=DovizTakip-Linux
             Icon=doviz
             Type=Application
-            Categories=Office;Finance;" > AppDir/usr/share/applications/doviztakip.desktop
+            Categories=Office;Finance;
+            EOL
+            
+            # Copy desktop file to application directory
+            cp "AppDir/doviztakip.desktop" "AppDir/usr/share/applications/"
             
             # AppRun dosyası oluştur
-            echo '#!/bin/bash
-            SELF=$(readlink -f "$0")
-            HERE=${SELF%/*}
-            export PATH="${HERE}/usr/bin/:${PATH}"
-            export LD_LIBRARY_PATH="${HERE}/usr/lib/:${LD_LIBRARY_PATH}"
-            "${HERE}/usr/bin/DovizTakip-Linux" "$@"' > AppDir/AppRun
+            cat > "AppDir/AppRun" << EOL
+            #!/bin/bash
+            SELF=\$(readlink -f "\$0")
+            HERE=\${SELF%/*}
+            export PATH="\${HERE}/usr/bin/:\${PATH}"
+            export LD_LIBRARY_PATH="\${HERE}/usr/lib/:\${LD_LIBRARY_PATH}"
+            "\${HERE}/usr/bin/DovizTakip-Linux" "\$@"
+            EOL
             
-            chmod +x AppDir/AppRun
-            
-            # .desktop dosyasını kök dizine kopyala
-            cp AppDir/usr/share/applications/doviztakip.desktop AppDir/doviztakip.desktop
+            chmod +x "AppDir/AppRun"
             
             # Debug için dizin içeriğini listele
             echo "--- AppDir Root Content ---"
             ls -la AppDir/
+            echo "--- Applications Directory Content ---"
+            ls -la AppDir/usr/share/applications/
             echo "--- Icon Check ---"
-            ls -la AppDir/doviz.png || echo "Icon file missing in root"
+            ls -la AppDir/doviz.png
             echo "--- Icon in apps directory ---"
-            ls -la AppDir/usr/share/icons/hicolor/256x256/apps/ || echo "Apps icon directory is empty"
+            ls -la AppDir/usr/share/icons/hicolor/256x256/apps/
 
       - name: Build AppImage
         run: |
-          # AppImage oluşturma öncesi debug
-          ls -la AppDir/
-          ls -la AppDir/usr/share/applications/
+          # Verify all required components exist
+          echo "Checking icon file..."
           file AppDir/doviz.png
           
-          # AppImage oluştur
-          ARCH=x86_64 ./appimagetool -v AppDir/ DovizTakip-x86_64.AppImage
+          echo "Desktop file content:"
+          cat AppDir/doviztakip.desktop
+          
+          echo "AppDir structure:"
+          find AppDir -type f | sort
+          
+          # AppImage oluştur (more verbose output)
+          ARCH=x86_64 ./appimagetool --verbose AppDir/ DovizTakip-x86_64.AppImage
 
       - name: Upload Linux AppImage
         uses: actions/upload-artifact@v4
