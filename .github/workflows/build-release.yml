@@ -76,18 +76,22 @@ jobs:
             mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
             cp dist/DovizTakip-Linux AppDir/usr/bin/
             
-            # İkon dosyasını hem sistem dizinine hem de kök dizine kopyala
-            cp images/doviz.ico AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png || true
+            # Install ImageMagick for icon conversion
+            sudo apt-get install -y imagemagick
             
-            # .ico dosyasını .png'ye çevir ve AppDir kök dizinine kopyala
+            # İkon dosyasını hem sistem dizinine hem de kök dizine kopyala
             if [ -f "images/doviz.ico" ]; then
-              sudo apt-get install -y imagemagick
-              convert images/doviz.ico AppDir/doviz.png
+              # Convert ico to png (force overwrite)
+              convert images/doviz.ico -resize 256x256 AppDir/doviz.png
+              cp AppDir/doviz.png AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png
             else
               # Eğer doviz.ico yoksa basit bir ikon oluştur
-              sudo apt-get install -y imagemagick
               convert -size 256x256 xc:transparent -fill blue -draw "circle 128,128 128,64" AppDir/doviz.png
+              cp AppDir/doviz.png AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png
             fi
+            
+            # Make sure icon exists and has correct permissions
+            chmod 644 AppDir/doviz.png
             
             # Desktop dosyası oluştur - Icon kısmını güncelle
             echo "[Desktop Entry]
@@ -115,21 +119,24 @@ jobs:
             ls -la AppDir/
             echo "--- Icon Check ---"
             ls -la AppDir/doviz.png || echo "Icon file missing in root"
+            echo "--- Icon in apps directory ---"
+            ls -la AppDir/usr/share/icons/hicolor/256x256/apps/ || echo "Apps icon directory is empty"
 
       - name: Build AppImage
         run: |
           # AppImage oluşturma öncesi debug
           ls -la AppDir/
           ls -la AppDir/usr/share/applications/
+          file AppDir/doviz.png
           
           # AppImage oluştur
-          ARCH=x86_64 ./appimagetool AppDir DovizTakip-x86_64.AppImage
+          ARCH=x86_64 ./appimagetool -v AppDir/ DovizTakip-x86_64.AppImage
 
       - name: Upload Linux AppImage
         uses: actions/upload-artifact@v4
         with:
           name: linux-appimage
-          path: DovizTakip.AppImage
+          path: DovizTakip-x86_64.AppImage
 
   create-release:
     needs: [build-windows, build-linux-appimage]
@@ -147,7 +154,7 @@ jobs:
         with:
           files: |
             windows-executable/DovizTakip-Windows.exe
-            linux-appimage/DovizTakip.AppImage
+            linux-appimage/DovizTakip-x86_64.AppImage
           name: Döviz Takip ${{ github.ref_name }}
           draft: false
           prerelease: false
