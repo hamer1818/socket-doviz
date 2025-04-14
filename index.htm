@@ -5,99 +5,589 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Canlı Döviz Takibi</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .trend-up { color: #10B981; }
+        .trend-down { color: #EF4444; }
+        .trend-stable { color: #6B7280; }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            background-color: #EF4444;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .chart-container {
+            height: 240px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">Canlı Döviz Kurları</h1>
-        <div class="text-sm text-gray-500 mb-6" id="lastUpdate"></div>
+    <!-- Bildirim -->
+    <div id="notification" class="notification">
+        <span id="notification-text"></span>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-1">Canlı Döviz Kurları</h1>
+                <div class="text-sm text-gray-500" id="lastUpdate"></div>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <span id="currentDate" class="text-gray-600 font-medium"></span>
+            </div>
+        </div>
         
-        <div class="grid md:grid-cols-2 gap-6">
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h2 class="text-xl font-semibold text-gray-700 mb-4">TL Kurları</h2>
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">USD/TRY:</span>
-                        <span id="usdRate" class="text-lg font-bold text-blue-600">Yükleniyor...</span>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
+                        <div>
+                            <span class="text-gray-600">USD/TRY:</span>
+                            <span id="usdRate" class="text-lg font-bold text-blue-600 ml-2">Yükleniyor...</span>
+                            <span id="usdTrend" class="ml-2"></span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <span id="usdChange"></span>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">EUR/TRY:</span>
-                        <span id="eurRate" class="text-lg font-bold text-blue-600">Yükleniyor...</span>
+                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
+                        <div>
+                            <span class="text-gray-600">EUR/TRY:</span>
+                            <span id="eurRate" class="text-lg font-bold text-blue-600 ml-2">Yükleniyor...</span>
+                            <span id="eurTrend" class="ml-2"></span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <span id="eurChange"></span>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">GBP/TRY:</span>
-                        <span id="gbpRate" class="text-lg font-bold text-blue-600">Yükleniyor...</span>
+                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
+                        <div>
+                            <span class="text-gray-600">GBP/TRY:</span>
+                            <span id="gbpRate" class="text-lg font-bold text-blue-600 ml-2">Yükleniyor...</span>
+                            <span id="gbpTrend" class="ml-2"></span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <span id="gbpChange"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <h3 class="text-lg font-medium text-gray-700 mb-2">Ekstra Para Birimleri</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-2 hover:bg-gray-50 rounded">
+                        <div class="text-gray-600">JPY/TRY:</div>
+                        <div id="jpyRate" class="font-medium">Yükleniyor...</div>
+                    </div>
+                    <div class="p-2 hover:bg-gray-50 rounded">
+                        <div class="text-gray-600">CHF/TRY:</div>
+                        <div id="chfRate" class="font-medium">Yükleniyor...</div>
+                    </div>
+                    <div class="p-2 hover:bg-gray-50 rounded">
+                        <div class="text-gray-600">CAD/TRY:</div>
+                        <div id="cadRate" class="font-medium">Yükleniyor...</div>
+                    </div>
+                    <div class="p-2 hover:bg-gray-50 rounded">
+                        <div class="text-gray-600">AUD/TRY:</div>
+                        <div id="audRate" class="font-medium">Yükleniyor...</div>
                     </div>
                 </div>
             </div>
 
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h2 class="text-xl font-semibold text-gray-700 mb-4">Çapraz Kurlar</h2>
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
                         <span class="text-gray-600">USD/EUR:</span>
                         <span id="usdEurRate" class="text-lg font-bold text-blue-600">Yükleniyor...</span>
                     </div>
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
                         <span class="text-gray-600">EUR/GBP:</span>
                         <span id="eurGbpRate" class="text-lg font-bold text-blue-600">Yükleniyor...</span>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Döviz Hesaplayıcı</h3>
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="flex space-x-4">
+                        <div class="w-1/2">
+                            <label class="block text-sm text-gray-600 mb-1">Miktar</label>
+                            <input type="number" id="convertAmount" value="1" min="0" class="w-full px-3 py-2 border rounded-md">
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-sm text-gray-600 mb-1">Para Birimi</label>
+                            <select id="convertCurrency" class="w-full px-3 py-2 border rounded-md">
+                                <option value="USD">USD (Dolar)</option>
+                                <option value="EUR">EUR (Euro)</option>
+                                <option value="GBP">GBP (Sterlin)</option>
+                                <option value="TRY">TRY (Türk Lirası)</option>
+                                <option value="JPY">JPY (Japon Yeni)</option>
+                                <option value="CHF">CHF (İsviçre Frangı)</option>
+                                <option value="CAD">CAD (Kanada Doları)</option>
+                                <option value="AUD">AUD (Avustralya Doları)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4">
+                        <div class="w-1/2">
+                            <label class="block text-sm text-gray-600 mb-1">Hedef Para Birimi</label>
+                            <select id="targetCurrency" class="w-full px-3 py-2 border rounded-md">
+                                <option value="TRY">TRY (Türk Lirası)</option>
+                                <option value="USD">USD (Dolar)</option>
+                                <option value="EUR">EUR (Euro)</option>
+                                <option value="GBP">GBP (Sterlin)</option>
+                                <option value="JPY">JPY (Japon Yeni)</option>
+                                <option value="CHF">CHF (İsviçre Frangı)</option>
+                                <option value="CAD">CAD (Kanada Doları)</option>
+                                <option value="AUD">AUD (Avustralya Doları)</option>
+                            </select>
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-sm text-gray-600 mb-1">Sonuç</label>
+                            <div id="convertResult" class="w-full px-3 py-2 border rounded-md bg-gray-50 font-medium">0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grafik Bölümü -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Döviz Grafikleri</h2>
+            <div class="mb-4">
+                <select id="chartCurrency" class="px-3 py-2 border rounded-md">
+                    <option value="USD">USD (Dolar)</option>
+                    <option value="EUR">EUR (Euro)</option>
+                    <option value="GBP">GBP (Sterlin)</option>
+                </select>
+            </div>
+            <div class="chart-container">
+                <canvas id="currencyChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Alarm Ayarları -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Fiyat Alarmları</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="space-y-3">
+                    <h3 class="font-medium">USD Alarmları</h3>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Minimum (TRY)</label>
+                        <div class="flex">
+                            <input type="number" id="usdMinAlarm" class="w-full px-3 py-2 border rounded-l-md">
+                            <button onclick="setAlarm('USD', 'min')" class="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600">Ayarla</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Maksimum (TRY)</label>
+                        <div class="flex">
+                            <input type="number" id="usdMaxAlarm" class="w-full px-3 py-2 border rounded-l-md">
+                            <button onclick="setAlarm('USD', 'max')" class="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600">Ayarla</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <h3 class="font-medium">EUR Alarmları</h3>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Minimum (TRY)</label>
+                        <div class="flex">
+                            <input type="number" id="eurMinAlarm" class="w-full px-3 py-2 border rounded-l-md">
+                            <button onclick="setAlarm('EUR', 'min')" class="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600">Ayarla</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Maksimum (TRY)</label>
+                        <div class="flex">
+                            <input type="number" id="eurMaxAlarm" class="w-full px-3 py-2 border rounded-l-md">
+                            <button onclick="setAlarm('EUR', 'max')" class="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600">Ayarla</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <h3 class="font-medium">GBP Alarmları</h3>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Minimum (TRY)</label>
+                        <div class="flex">
+                            <input type="number" id="gbpMinAlarm" class="w-full px-3 py-2 border rounded-l-md">
+                            <button onclick="setAlarm('GBP', 'min')" class="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600">Ayarla</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Maksimum (TRY)</label>
+                        <div class="flex">
+                            <input type="number" id="gbpMaxAlarm" class="w-full px-3 py-2 border rounded-l-md">
+                            <button onclick="setAlarm('GBP', 'max')" class="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600">Ayarla</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zaman</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">USD/TRY</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">EUR/TRY</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GBP/TRY</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200"></tbody>
-            </table>
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-4 bg-gray-50 border-b">
+                <h2 class="text-xl font-semibold text-gray-700">Geçmiş Veriler</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zaman</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">USD/TRY</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">EUR/TRY</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GBP/TRY</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Değişim</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
         </div>
     </div>
-    <footer class="text-center text-gray-500 text-sm mt-8">
-        <p>© 2021 <a href="https://github.com/hamer1818" class="text-blue-500">Hamza ORTATEPE</a></p>
+    
+    <footer class="bg-gray-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-4 max-w-6xl">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <h2 class="text-xl font-bold">Döviz Takip</h2>
+                    <p class="mt-2 text-sm text-gray-400">Güncel döviz kurları ve finansal analiz aracı</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="https://github.com/hamer1818" class="text-gray-400 hover:text-white">
+                        <i class="fab fa-github"></i> GitHub
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-envelope"></i> İletişim
+                    </a>
+                </div>
+            </div>
+            <div class="mt-6 border-t border-gray-700 pt-6 text-center text-sm text-gray-400">
+                <p>© 2025 <a href="https://github.com/hamer1818" class="text-blue-400">Hamza ORTATEPE</a>. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
     </footer>
 
     <script>
+        // Sabit değişkenler
         const ws = new WebSocket('ws://localhost:8765');
         const historyData = [];
-
+        let currencyRates = {};
+        let chartInstance = null;
+        const chartColors = {
+            USD: 'rgb(54, 162, 235)',
+            EUR: 'rgb(255, 99, 132)',
+            GBP: 'rgb(75, 192, 192)'
+        };
+        
+        // Tarih güncelleme
+        function updateDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('tr-TR', options);
+        }
+        updateDate();
+        
+        // Bildirim gösterme
+        function showNotification(message, duration = 5000) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            
+            notificationText.textContent = message;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, duration);
+        }
+        
+        // Para birimi sembolü ekleme
+        function getCurrencySymbol(currency) {
+            const symbols = {
+                'USD': '$',
+                'EUR': '€',
+                'GBP': '£',
+                'TRY': '₺',
+                'JPY': '¥',
+                'CHF': 'CHF',
+                'CAD': 'C$',
+                'AUD': 'A$'
+            };
+            return symbols[currency] || currency;
+        }
+        
+        // Trend ikonları
+        function getTrendIcon(trend) {
+            if (trend === 'yükseliyor') {
+                return '<i class="fas fa-arrow-up trend-up"></i>';
+            } else if (trend === 'düşüyor') {
+                return '<i class="fas fa-arrow-down trend-down"></i>';
+            } else {
+                return '<i class="fas fa-minus trend-stable"></i>';
+            }
+        }
+        
+        // Döviz hesaplama fonksiyonu
+        function convertCurrency() {
+            const amount = parseFloat(document.getElementById('convertAmount').value);
+            const fromCurrency = document.getElementById('convertCurrency').value;
+            const toCurrency = document.getElementById('targetCurrency').value;
+            
+            if (!amount || isNaN(amount) || !currencyRates[fromCurrency] || !currencyRates[toCurrency]) {
+                document.getElementById('convertResult').textContent = 'Hesaplanamıyor';
+                return;
+            }
+            
+            let result;
+            
+            // TL'ye çevirme veya TL'den çevirme
+            if (fromCurrency === 'TRY') {
+                // TL'den başka para birimine
+                result = amount / currencyRates[toCurrency]; 
+            } else if (toCurrency === 'TRY') {
+                // Başka para biriminden TL'ye
+                result = amount * currencyRates[fromCurrency];
+            } else {
+                // Çapraz kur hesaplama
+                const fromInTL = amount * currencyRates[fromCurrency]; // Önce TL'ye çevir
+                result = fromInTL / currencyRates[toCurrency]; // TL'den hedef para birimine çevir
+            }
+            
+            document.getElementById('convertResult').textContent = 
+                `${result.toFixed(4)} ${getCurrencySymbol(toCurrency)}`;
+        }
+        
+        // Alarm ayarlama
+        function setAlarm(currency, type) {
+            const inputId = `${currency.toLowerCase()}${type.charAt(0).toUpperCase() + type.slice(1)}Alarm`;
+            const value = parseFloat(document.getElementById(inputId).value);
+            
+            if (isNaN(value)) {
+                showNotification(`Lütfen geçerli bir değer girin.`);
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'set_alarm',
+                currency: currency,
+                level_type: type,
+                value: value
+            }));
+            
+            showNotification(`${currency} için ${type === 'min' ? 'minimum' : 'maksimum'} alarm ${value} olarak ayarlandı.`);
+        }
+        
+        // Grafik oluşturma ve güncelleme
+        function createChart(currency) {
+            const ctx = document.getElementById('currencyChart').getContext('2d');
+            
+            // Geçmiş veri varsa
+            const labels = historyData.map(item => item.timestamp).reverse();
+            const data = historyData.map(item => item[currency]).reverse();
+            
+            // Grafik konfigürasyonu
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${currency}/TRY`,
+                        data: data,
+                        borderColor: chartColors[currency] || 'rgb(75, 192, 192)',
+                        backgroundColor: (chartColors[currency] || 'rgb(75, 192, 192)').replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' ₺';
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(4)} ₺`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateChart(currency) {
+            if (!chartInstance) {
+                createChart(currency);
+                return;
+            }
+            
+            // Mevcut grafiği güncelle
+            chartInstance.data.labels = historyData.map(item => item.timestamp).reverse();
+            chartInstance.data.datasets[0].label = `${currency}/TRY`;
+            chartInstance.data.datasets[0].data = historyData.map(item => item[currency]).reverse();
+            chartInstance.data.datasets[0].borderColor = chartColors[currency] || 'rgb(75, 192, 192)';
+            chartInstance.data.datasets[0].backgroundColor = 
+                (chartColors[currency] || 'rgb(75, 192, 192)').replace('rgb', 'rgba').replace(')', ', 0.1)');
+            
+            chartInstance.update();
+        }
+        
+        // Event listeners
+        document.getElementById('convertAmount').addEventListener('input', convertCurrency);
+        document.getElementById('convertCurrency').addEventListener('change', convertCurrency);
+        document.getElementById('targetCurrency').addEventListener('change', convertCurrency);
+        document.getElementById('chartCurrency').addEventListener('change', function() {
+            updateChart(this.value);
+        });
+        
+        // WebSocket bağlantısı
         ws.onmessage = function(event) {
             const data = JSON.parse(event.data);
+            currencyRates = { 
+                USD: data.USD,
+                EUR: data.EUR,
+                GBP: data.GBP,
+                TRY: 1,
+                JPY: data.JPY,
+                CHF: data.CHF, 
+                CAD: data.CAD,
+                AUD: data.AUD
+            };
             
+            // Ana para birimleri
             document.getElementById('usdRate').textContent = data.USD.toFixed(4);
             document.getElementById('eurRate').textContent = data.EUR.toFixed(4);
             document.getElementById('gbpRate').textContent = data.GBP.toFixed(4);
+            
+            // Ekstra para birimleri
+            document.getElementById('jpyRate').textContent = data.JPY.toFixed(4);
+            document.getElementById('chfRate').textContent = data.CHF.toFixed(4);
+            document.getElementById('cadRate').textContent = data.CAD.toFixed(4);
+            document.getElementById('audRate').textContent = data.AUD.toFixed(4);
+            
+            // Çapraz kurlar
             document.getElementById('usdEurRate').textContent = data.USD_EUR.toFixed(4);
             document.getElementById('eurGbpRate').textContent = data.EUR_GBP.toFixed(4);
+            
+            // Trend göstergeleri
+            if (data.trends) {
+                document.getElementById('usdTrend').innerHTML = getTrendIcon(data.trends.USD);
+                document.getElementById('eurTrend').innerHTML = getTrendIcon(data.trends.EUR);
+                document.getElementById('gbpTrend').innerHTML = getTrendIcon(data.trends.GBP);
+            }
+            
+            // Değişim yüzdeleri
+            if (data.changes) {
+                const formatChange = (change) => {
+                    const sign = change.percent > 0 ? '+' : '';
+                    const colorClass = change.percent > 0 ? 'text-green-600' : 
+                                      change.percent < 0 ? 'text-red-600' : 'text-gray-600';
+                    return `<span class="${colorClass}">${sign}${change.percent.toFixed(2)}%</span>`;
+                };
+                
+                document.getElementById('usdChange').innerHTML = formatChange(data.changes.USD);
+                document.getElementById('eurChange').innerHTML = formatChange(data.changes.EUR);
+                document.getElementById('gbpChange').innerHTML = formatChange(data.changes.GBP);
+            }
+            
+            // Tarih ve son güncelleme
             document.getElementById('lastUpdate').textContent = 
                 `Son Güncelleme: ${data.timestamp}`;
-
-            historyData.unshift(data);
-            if (historyData.length > 10) historyData.pop();
+                
+            // Alarmlar
+            if (data.alarms) {
+                for (const [currency, status] of Object.entries(data.alarms)) {
+                    const message = status === 'high' 
+                        ? `${currency} kurları maksimum değerin üzerine çıktı!`
+                        : `${currency} kurları minimum değerin altına düştü!`;
+                    
+                    showNotification(message);
+                }
+            }
+                
+            // Döviz hesaplayıcı güncelleme
+            convertCurrency();
             
+            // Geçmiş veri ekleme
+            historyData.unshift(data);
+            if (historyData.length > 60) historyData.pop();
+            
+            // Grafik güncelleme
+            if (chartInstance) {
+                const selectedCurrency = document.getElementById('chartCurrency').value;
+                updateChart(selectedCurrency);
+            } else {
+                createChart('USD'); // İlk yükleme
+            }
+            
+            // Tablo güncelleme
             const tbody = document.querySelector('tbody');
-            tbody.innerHTML = historyData.map(item => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.timestamp}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.USD.toFixed(4)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.EUR.toFixed(4)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.GBP.toFixed(4)}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = historyData.slice(0, 10).map(item => {
+                const usdChangeColor = item.changes && item.changes.USD.percent > 0 ? 'text-green-600' : 
+                                      item.changes && item.changes.USD.percent < 0 ? 'text-red-600' : 'text-gray-600';
+                const changeText = item.changes 
+                    ? `<span class="${usdChangeColor}">${item.changes.USD.percent > 0 ? '+' : ''}${item.changes.USD.percent.toFixed(2)}%</span>`
+                    : '';
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.timestamp}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.USD.toFixed(4)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.EUR.toFixed(4)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.GBP.toFixed(4)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">${changeText}</td>
+                    </tr>
+                `;
+            }).join('');
         };
-
+        
+        // Websocket hata işlemleri
         ws.onerror = function(error) {
-            console.error('WebSocket error:', error);
+            console.error('WebSocket hatası:', error);
+            showNotification('Sunucuya bağlantı sırasında hata oluştu.');
         };
 
         ws.onclose = function() {
             console.log('WebSocket bağlantısı kapandı');
+            showNotification('Sunucu bağlantısı kapandı. Sayfa yenilenecek...', 3000);
+            setTimeout(() => location.reload(), 3000);
+        };
+        
+        // Bağlantı açıldığında
+        ws.onopen = function() {
+            console.log('WebSocket bağlantısı açıldı');
         };
     </script>
 </body>
