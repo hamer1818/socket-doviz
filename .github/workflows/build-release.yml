@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*' # v1.0, v1.1, v2.0 gibi sürüm etiketleri için
 
+permissions:
+  contents: write
+  packages: write
+  actions: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
