@@ -52,11 +52,15 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
           sudo apt-get update
-          sudo apt-get install -y libxcb-xinerama0 libxcb-cursor0 libxcb1 libqt5gui5
+          sudo apt-get install -y libxcb-xinerama0 libxcb-cursor0 libxcb1 libqt5gui5 libgl1-mesa-glx
 
       - name: Build with PyInstaller
         run: |
           pyinstaller --onefile --name DovizTakip-Linux --add-data "images:images" main_gui.py
+
+      - name: Set executable permissions
+        run: |
+          chmod +x dist/DovizTakip-Linux
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
