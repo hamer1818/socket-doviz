@@ -93,6 +93,8 @@ jobs:
             
             # Make sure icon exists and has correct permissions
             chmod 644 "AppDir/doviz.png"
+            # Ek: Root dizinine ikon kopyası ekle
+            cp "AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png" "AppDir/doviz.png"
             
             # Debug icon file
             file "AppDir/doviz.png"
