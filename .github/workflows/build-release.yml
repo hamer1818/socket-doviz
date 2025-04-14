@@ -102,7 +102,7 @@ jobs:
             [Desktop Entry]
             Name=Döviz Takip
             Exec=DovizTakip-Linux
-            Icon=doviz
+            Icon=doviz.png
             Type=Application
             Categories=Office;Finance;
             EOL
