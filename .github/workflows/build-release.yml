@@ -39,122 +39,8 @@ jobs:
           name: windows-executable
           path: dist/DovizTakip-Windows.exe
 
-  build-linux-appimage:
-    runs-on: ubuntu-22.04  # Daha eski bir Ubuntu sürümü kullanıyoruz
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
-          sudo apt-get update
-          sudo apt-get install -y libxcb-xinerama0 libxcb-cursor0 libxcb1 libqt5gui5 libgl1
-
-      - name: Build with PyInstaller
-        run: |
-          pyinstaller --onefile --name DovizTakip-Linux --add-data "images:images" main_gui.py
-
-      - name: Install AppImage tools
-        run: |
-          sudo apt-get install -y wget fuse
-          wget -O appimagetool "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
-          chmod +x appimagetool
-
-      - name: Create AppDir structure
-        run: |
-            mkdir -p AppDir/usr/bin
-            mkdir -p AppDir/usr/share/applications
-            mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-            cp dist/DovizTakip-Linux AppDir/usr/bin/
-            
-            # Install ImageMagick for icon conversion
-            sudo apt-get install -y imagemagick
-            
-            # Ensure icon exists in AppDir root via conversion
-            if [ -f "images/doviz.ico" ]; then
-              # Convert ico to png (force overwrite)
-              convert "images/doviz.ico" -background none -resize 256x256 "AppDir/doviz.png"
-            else
-              # Create a fallback icon if doviz.ico doesn't exist
-              convert -size 256x256 xc:transparent -fill blue -draw "circle 128,128 128,64" "AppDir/doviz.png"
-            fi
-            
-            # Also copy to app icon directory
-            cp "AppDir/doviz.png" "AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png"
-            
-            # Make sure icon exists and has correct permissions
-            chmod 644 "AppDir/doviz.png"
-            
-            # Debug icon file
-            file "AppDir/doviz.png"
-            
-            # Desktop dosyası oluştur - Icon değerini mutlak yol ile kullan
-            cat > "AppDir/doviztakip.desktop" << EOL
-            [Desktop Entry]
-            Name=Döviz Takip
-            Exec=DovizTakip-Linux
-            Icon=doviz.png
-            Type=Application
-            Categories=Office;Finance;
-            EOL
-            
-            # Copy desktop file to application directory
-            cp "AppDir/doviztakip.desktop" "AppDir/usr/share/applications/"
-            
-            # AppRun dosyası oluştur
-            cat > "AppDir/AppRun" << EOL
-            #!/bin/bash
-            SELF=\$(readlink -f "\$0")
-            HERE=\${SELF%/*}
-            export PATH="\${HERE}/usr/bin/:\${PATH}"
-            export LD_LIBRARY_PATH="\${HERE}/usr/lib/:\${LD_LIBRARY_PATH}"
-            "\${HERE}/usr/bin/DovizTakip-Linux" "\$@"
-            EOL
-            
-            chmod +x "AppDir/AppRun"
-            
-            # Debug için dizin içeriğini listele
-            echo "--- AppDir Root Content ---"
-            ls -la AppDir/
-            echo "--- Applications Directory Content ---"
-            ls -la AppDir/usr/share/applications/
-            echo "--- Icon Check ---"
-            ls -la AppDir/doviz.png
-            echo "--- Icon in apps directory ---"
-            ls -la AppDir/usr/share/icons/hicolor/256x256/apps/
-
-      - name: Build AppImage
-        run: |
-          # Verify all required components exist
-          echo "Checking icon file..."
-          file AppDir/doviz.png
-          
-          echo "Desktop file content:"
-          cat AppDir/doviztakip.desktop
-          
-          echo "AppDir structure:"
-          find AppDir -type f | sort
-          
-          # AppImage oluştur (more verbose output)
-          ARCH=x86_64 ./appimagetool --verbose AppDir/ DovizTakip-x86_64.AppImage
-
-      - name: Upload Linux AppImage
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-appimage
-          path: DovizTakip-x86_64.AppImage
-
   create-release:
-    needs: [build-windows, build-linux-appimage]
+    needs: [build-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -169,7 +55,6 @@ jobs:
         with:
           files: |
             windows-executable/DovizTakip-Windows.exe
-            linux-appimage/DovizTakip-x86_64.AppImage
           name: Döviz Takip ${{ github.ref_name }}
           draft: false
           prerelease: false
