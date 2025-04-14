@@ -71,32 +71,50 @@ jobs:
 
       - name: Create AppDir structure
         run: |
-          mkdir -p AppDir/usr/bin
-          mkdir -p AppDir/usr/share/applications
-          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-          cp dist/DovizTakip-Linux AppDir/usr/bin/
-          cp images/doviz.ico AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png || true
-      
-          # Desktop dosyası oluştur
-          echo "[Desktop Entry]
-          Name=Döviz Takip
-          Exec=DovizTakip-Linux
-          Icon=doviz
-          Type=Application
-          Categories=Finance;" > AppDir/usr/share/applications/doviztakip.desktop
-          
-          # AppRun dosyası oluştur
-          echo '#!/bin/bash
-          SELF=$(readlink -f "$0")
-          HERE=${SELF%/*}
-          export PATH="${HERE}/usr/bin/:${PATH}"
-          export LD_LIBRARY_PATH="${HERE}/usr/lib/:${LD_LIBRARY_PATH}"
-          "${HERE}/usr/bin/DovizTakip-Linux" "$@"' > AppDir/AppRun
-          
-          chmod +x AppDir/AppRun
-          
-          # .desktop dosyasını kök dizine kopyala
-          cp AppDir/usr/share/applications/doviztakip.desktop AppDir/doviztakip.desktop
+            mkdir -p AppDir/usr/bin
+            mkdir -p AppDir/usr/share/applications
+            mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+            cp dist/DovizTakip-Linux AppDir/usr/bin/
+            
+            # İkon dosyasını hem sistem dizinine hem de kök dizine kopyala
+            cp images/doviz.ico AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png || true
+            
+            # .ico dosyasını .png'ye çevir ve AppDir kök dizinine kopyala
+            if [ -f "images/doviz.ico" ]; then
+              sudo apt-get install -y imagemagick
+              convert images/doviz.ico AppDir/doviz.png
+            else
+              # Eğer doviz.ico yoksa basit bir ikon oluştur
+              sudo apt-get install -y imagemagick
+              convert -size 256x256 xc:transparent -fill blue -draw "circle 128,128 128,64" AppDir/doviz.png
+            fi
+            
+            # Desktop dosyası oluştur - Icon kısmını güncelle
+            echo "[Desktop Entry]
+            Name=Döviz Takip
+            Exec=DovizTakip-Linux
+            Icon=doviz
+            Type=Application
+            Categories=Office;Finance;" > AppDir/usr/share/applications/doviztakip.desktop
+            
+            # AppRun dosyası oluştur
+            echo '#!/bin/bash
+            SELF=$(readlink -f "$0")
+            HERE=${SELF%/*}
+            export PATH="${HERE}/usr/bin/:${PATH}"
+            export LD_LIBRARY_PATH="${HERE}/usr/lib/:${LD_LIBRARY_PATH}"
+            "${HERE}/usr/bin/DovizTakip-Linux" "$@"' > AppDir/AppRun
+            
+            chmod +x AppDir/AppRun
+            
+            # .desktop dosyasını kök dizine kopyala
+            cp AppDir/usr/share/applications/doviztakip.desktop AppDir/doviztakip.desktop
+            
+            # Debug için dizin içeriğini listele
+            echo "--- AppDir Root Content ---"
+            ls -la AppDir/
+            echo "--- Icon Check ---"
+            ls -la AppDir/doviz.png || echo "Icon file missing in root"
 
       - name: Build AppImage
         run: |
