@@ -79,7 +79,7 @@ jobs:
             # Install ImageMagick for icon conversion
             sudo apt-get install -y imagemagick
             
-            # Ensure doviz.png exists in AppDir root
+            # Ensure icon exists in AppDir root via conversion
             if [ -f "images/doviz.ico" ]; then
               # Convert ico to png (force overwrite)
               convert "images/doviz.ico" -background none -resize 256x256 "AppDir/doviz.png"
@@ -89,12 +89,10 @@ jobs:
             fi
             
             # Also copy to app icon directory
-            cp "AppDir/doviz.png" "AppDir/usr/share/icons/hicolor/256x256/apps/"
+            cp "AppDir/doviz.png" "AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png"
             
             # Make sure icon exists and has correct permissions
             chmod 644 "AppDir/doviz.png"
-            # Ek: Root dizinine ikon kopyası ekle
-            cp "AppDir/usr/share/icons/hicolor/256x256/apps/doviz.png" "AppDir/doviz.png"
             
             # Debug icon file
             file "AppDir/doviz.png"
